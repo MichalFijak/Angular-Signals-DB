@@ -14,13 +14,8 @@ export class VehicleListComponent {
   errorMessage = '';
   vehicleService = inject(VehicleService);
  
-  // Vehicles
-  vehicles$ = this.vehicleService.vehicles$
-    .pipe(
-      catchError(err => {
-        this.errorMessage = err;
-        return EMPTY;
-      }));
+  vehicles = this.vehicleService.vehicles;
+
 
   selectedVehicle$ = this.vehicleService.selectedVehicle$.pipe(
     catchError(err => {

@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import {
   BehaviorSubject,
   catchError,
@@ -14,6 +14,7 @@ import {
   throwError
 } from 'rxjs';
 import { Film, Vehicle, VehicleResponse } from './vehicle';
+import { toObservable, toSignal} from '@angular/core/rxjs-interop';
 
 @Injectable({
   providedIn: 'root'
@@ -22,14 +23,10 @@ export class VehicleService {
   private url = 'https://swapi.py4e.com/api/vehicles';
   http = inject(HttpClient);
   
-  // Action stream
-  private vehicleSelectedSubject = new BehaviorSubject<string>('');
-  vehicleSelected$ = this.vehicleSelectedSubject.asObservable();
-
   // First page of vehicles
   // If the price is empty, randomly assign a price
   // (We can't modify the backend in this demo)
-  vehicles$ = this.http.get<VehicleResponse>(this.url).pipe(
+  private vehicles$ = this.http.get<VehicleResponse>(this.url).pipe(
     map((data) =>
       data.results.map((v) => ({
         ...v,
@@ -42,14 +39,12 @@ export class VehicleService {
     catchError(this.handleError)
   );
 
-  // Find the vehicle in the list of vehicles
-  selectedVehicle$ = combineLatest([this.vehicles$, 
-                                     this.vehicleSelected$]).pipe(
-    map(([vehicles, vehicleName]) => vehicles.find((v) => v.name === vehicleName)
-    )
-  );
+  vehicles =toSignal<Vehicle[],Vehicle[]>(this.vehicles$, {initialValue:[]});
 
-  vehicleFilms$ = this.selectedVehicle$.pipe(
+  selectedVehicle = signal<Vehicle | undefined>(undefined);
+
+
+  private vehicleFilms$ = toObservable(this.selectedVehicle).pipe(
     filter(Boolean),
     switchMap(vehicle =>
       forkJoin(vehicle.films.map(link =>
@@ -57,8 +52,11 @@ export class VehicleService {
     )
   );
 
+  vehicleFilm = toSignal<Film[],Film[]>(this.vehicleFilms$,  {initialValue:[]});
+
   vehicleSelected(vehicleName: string) {
-    this.vehicleSelectedSubject.next(vehicleName);
+    const foundVehicle = this.vehicles().find(v=>v.name==vehicleName);
+    this.selectedVehicle.set(foundVehicle);
   }
 
   private handleError(err: HttpErrorResponse): Observable<never> {
