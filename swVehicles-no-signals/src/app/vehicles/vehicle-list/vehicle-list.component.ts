@@ -15,14 +15,7 @@ export class VehicleListComponent {
   vehicleService = inject(VehicleService);
  
   vehicles = this.vehicleService.vehicles;
-
-
-  selectedVehicle$ = this.vehicleService.selectedVehicle$.pipe(
-    catchError(err => {
-      this.errorMessage = err;
-      return EMPTY;
-    })
-  );
+  selectedVehicle = this.vehicleService.selectedVehicle;
 
   // When a vehicle is selected, emit the selected vehicle name
   onSelected(vehicleName: string): void {
